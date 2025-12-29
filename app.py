@@ -222,7 +222,10 @@ with st.sidebar:
     st.header("7) Visualization")
     thr_area = st.slider("Area threshold (Sg > thr)", 0.0, 0.5, 0.05, 0.01)
     smooth_display = st.checkbox("Smooth display (does NOT change saved output)", value=True)
-    smooth_k = st.slider("Smoothing kernel", 1, 9, 3, 2)
+    smooth_k = int(st.slider("Smooth kernel size", 1, 31, 5, 2))
+if smooth_k % 2 == 0:
+    smooth_k += 1
+st.caption(f"Using k={smooth_k} (odd)")
 
     st.divider()
     run_btn = st.button("Run forward prediction", type="primary")
