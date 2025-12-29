@@ -225,9 +225,8 @@ with st.sidebar:
     smooth_display = st.checkbox("Smooth display (does NOT change saved output)", value=True)
     smooth_k = int(st.slider("Smooth kernel size", 1, 31, 5))
 if smooth_k % 2 == 0:
-    smooth_k += 1
-    
-st.caption(f"Using k={smooth_k} (odd)")
+    smooth_k += 1  
+
     st.divider()
     run_btn = st.button("Run forward prediction", type="primary")
 
