@@ -54,42 +54,45 @@ def load_schedule_csv(uploaded):
     q = df["q"].to_numpy(dtype=np.float32)
     return t, q
 
-def box_smooth_2d(a, k=3):
-    """Simple box filter for visualization only (keeps NaNs)."""
-    k = int(k)
+def box_smooth_2d(x, k: int = 3):
+    """
+    NaN-aware box smoothing using an integral image.
+    Always returns the SAME shape as input (H, W).
+    Works for any H,W and any k>=1.
+    """
+    if x is None:
+        return None
+
+    x = np.asarray(x, dtype=np.float32)
     if k <= 1:
-        return a
+        return x
+
+    # Force odd window so output shape is guaranteed (H,W)
+    if (k % 2) == 0:
+        k += 1
     pad = k // 2
-    x = a.astype(np.float32)
-    mask = np.isfinite(x)
-    x0 = np.where(mask, x, 0.0)
-    w = mask.astype(np.float32)
 
-    x0p = np.pad(x0, ((pad,pad),(pad,pad)), mode="edge")
-    wp  = np.pad(w,  ((pad,pad),(pad,pad)), mode="edge")
+    valid = np.isfinite(x)
+    x0 = np.where(valid, x, 0.0).astype(np.float32)
+    w0 = valid.astype(np.float32)
 
-    out = np.zeros_like(x0)
-    wout = np.zeros_like(w)
+    # Pad with zeros; weights handle edges correctly
+    x0p = np.pad(x0, ((pad, pad), (pad, pad)), mode="constant", constant_values=0.0)
+    w0p = np.pad(w0, ((pad, pad), (pad, pad)), mode="constant", constant_values=0.0)
 
-    # separable box: horizontal then vertical
-    # horizontal
-    tmp = np.zeros_like(x0p)
-    wtmp = np.zeros_like(wp)
-    csum = np.cumsum(x0p, axis=1)
-    wcsum = np.cumsum(wp, axis=1)
-    tmp[:, pad:-pad] = csum[:, k:] - csum[:, :-k]
-    wtmp[:, pad:-pad] = wcsum[:, k:] - wcsum[:, :-k]
+    # Integral images with a 1-cell zero border (this avoids off-by-one)
+    S = np.pad(x0p, ((1, 0), (1, 0)), mode="constant", constant_values=0.0)
+    W = np.pad(w0p, ((1, 0), (1, 0)), mode="constant", constant_values=0.0)
+    S = np.cumsum(np.cumsum(S, axis=0), axis=1)
+    W = np.cumsum(np.cumsum(W, axis=0), axis=1)
 
-    # vertical
-    csum2 = np.cumsum(tmp, axis=0)
-    wcsum2 = np.cumsum(wtmp, axis=0)
-    out = csum2[k:, :] - csum2[:-k, :]
-    wout = wcsum2[k:, :] - wcsum2[:-k, :]
+    # Window sum via 4 corners -> output is exactly (H, W)
+    total = S[k:, k:] - S[:-k, k:] - S[k:, :-k] + S[:-k, :-k]
+    wsum  = W[k:, k:] - W[:-k, k:] - W[k:, :-k] + W[:-k, :-k]
 
-    out = out[pad:-pad, pad:-pad]
-    wout = wout[pad:-pad, pad:-pad]
-    out = np.where(wout > 0, out / wout, np.nan).astype(np.float32)
+    out = np.where(wsum > 0, total / wsum, np.nan).astype(np.float32)
     return out
+
 
 def fig_imshow(arr, title, vmin=None, vmax=None):
     fig = plt.figure(figsize=(7.2, 4.6))
