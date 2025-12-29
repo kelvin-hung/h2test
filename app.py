@@ -68,6 +68,7 @@ def box_smooth_2d(x, k: int = 3):
         return x
 
     # Force odd window so output shape is guaranteed (H,W)
+    k = int(k)
     if (k % 2) == 0:
         k += 1
     pad = k // 2
@@ -80,7 +81,7 @@ def box_smooth_2d(x, k: int = 3):
     x0p = np.pad(x0, ((pad, pad), (pad, pad)), mode="constant", constant_values=0.0)
     w0p = np.pad(w0, ((pad, pad), (pad, pad)), mode="constant", constant_values=0.0)
 
-    # Integral images with a 1-cell zero border (this avoids off-by-one)
+    # Integral images with a 1-cell zero border
     S = np.pad(x0p, ((1, 0), (1, 0)), mode="constant", constant_values=0.0)
     W = np.pad(w0p, ((1, 0), (1, 0)), mode="constant", constant_values=0.0)
     S = np.cumsum(np.cumsum(S, axis=0), axis=1)
@@ -222,7 +223,7 @@ with st.sidebar:
     st.header("7) Visualization")
     thr_area = st.slider("Area threshold (Sg > thr)", 0.0, 0.5, 0.05, 0.01)
     smooth_display = st.checkbox("Smooth display (does NOT change saved output)", value=True)
-    smooth_k = int(st.slider("Smooth kernel size", 1, 31, 5, 2))
+    smooth_k = int(st.slider("Smooth kernel size", 1, 31, 5))
 if smooth_k % 2 == 0:
     smooth_k += 1
 st.caption(f"Using k={smooth_k} (odd)")
